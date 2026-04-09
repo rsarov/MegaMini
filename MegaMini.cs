@@ -1,19 +1,11 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Text.RegularExpressions;
 
 namespace MegaMini
 {
     internal class MegaMini
     {
-        private const int bufferSize = 1024 * 64;
-        private const int responseTimeout = Timeout.Infinite;
-        private const string applicationKey = "axhQiYyQ";
-        private const string baseLink = "https://g.api.mega.co.nz/cs";
-        private static uint sequenceIndex = (uint)(uint.MaxValue * new Random().NextDouble());
         public static List<MegaFile>? GetNodesFromLink(string link)
         {
             ArgumentNullException.ThrowIfNull(link);
@@ -23,18 +15,18 @@ namespace MegaMini
                 throw new ArgumentException("Link must be a valid folder share starting with /folder/. Use GetNodeFromLink() for file share", nameof(link));
             }
 
-            GetIdAndKeyFromLink(link, out string? shareId, out byte[]? decryptedKey);
+            Utils.GetIdAndKeyFromLink(link, out string? shareId, out byte[]? decryptedKey);
 
             if (shareId == null || decryptedKey == null)
             {
                 return null;
             }
 
-            string url = baseLink + "?n=" + shareId
-                + "&id=" + (sequenceIndex++ % uint.MaxValue).ToString(CultureInfo.InvariantCulture).ToString()
-                + "&ak=" + applicationKey;
+            string url = Const.baseLink + "?n=" + shareId
+                + "&id=" + (Const.sequenceIndex++ % uint.MaxValue).ToString(CultureInfo.InvariantCulture).ToString()
+                + "&ak=" + Const.applicationKey;
             Stream dataStream = new MemoryStream(Utils.ToBytes("[{\"c\":1,\"r\":1,\"a\":\"f\"}]"));
-            Stream requestStream = PostRequest(url, dataStream, "application/json");
+            Stream requestStream = Utils.PostRequest(url, dataStream, "application/json");
             String json = Utils.StreamToString(requestStream);
             List<JToken> allF = [.. JArray.Parse(json).SelectMany(x => x["f"] ?? new JArray())];
             List<MegaFile> megaFiles = [];
@@ -70,18 +62,18 @@ namespace MegaMini
         {
             ArgumentNullException.ThrowIfNull(megaFile);
 
-            string url = baseLink + "?n=" + megaFile.SareId
-                + "&id=" + (sequenceIndex++ % uint.MaxValue).ToString(CultureInfo.InvariantCulture).ToString()
-                + "&ak=" + applicationKey;
+            string url = Const.baseLink + "?n=" + megaFile.SareId
+                + "&id=" + (Const.sequenceIndex++ % uint.MaxValue).ToString(CultureInfo.InvariantCulture).ToString()
+                + "&ak=" + Const.applicationKey;
             string dataRequest = "[{\"g\":1,\"n\":\"" + megaFile.Id + "\",\"a\":\"g\"}]";
             Stream dataStream = new MemoryStream(Utils.ToBytes(dataRequest));
-            Stream requestStream = PostRequest(url, dataStream, "application/json");
+            Stream requestStream = Utils.PostRequest(url, dataStream, "application/json");
             String json = Utils.StreamToString(requestStream);
             string? fileUrl = JArray.Parse(json)[0].Value<string>("g");
             long size = JArray.Parse(json)[0].Value<long>("s");
             HttpClient httpClient = new(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate })
             {
-                Timeout = TimeSpan.FromMilliseconds(responseTimeout)
+                Timeout = TimeSpan.FromMilliseconds(Const.responseTimeout)
             };
             Stream fileStream = httpClient.GetStreamAsync(fileUrl).Result;
 
@@ -96,48 +88,5 @@ namespace MegaMini
                 return null;
             }
         }
-
-        private static void GetIdAndKeyFromLink(string link, out string? shareId, out byte[]? decryptedKey)
-        {
-            shareId = null;
-            decryptedKey = null;
-            Regex regex = new(@"/(?<type>(file|folder))/(?<id>[^#]+)#(?<key>[^$/]+)", RegexOptions.IgnoreCase);
-            Match match = regex.Match(link);
-            if (match.Success)
-            {
-                shareId = match.Groups["id"].Value;
-                decryptedKey = Utils.FromBase64(match.Groups["key"].Value);
-
-            }
-        }
-
-        private static Stream PostRequest(string url, Stream dataStream, string contentType)
-        {
-            using StreamContent content = new(dataStream, bufferSize);
-            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
-
-            HttpRequestMessage requestMessage = new(HttpMethod.Post, url)
-            {
-                Content = content
-            };
-
-            HttpClient httpClient = new(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate })
-            {
-                Timeout = TimeSpan.FromMilliseconds(responseTimeout)
-            };
-            HttpResponseMessage response = httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead).Result;
-            response.EnsureSuccessStatusCode();
-            return response.Content.ReadAsStreamAsync().Result;
-        }
-    }
-
-    public struct MegaFile(string? id, string? name, string? shareId, byte[]? iv, byte[]? metaMac, byte[]? key)
-    {
-        public string? Id = id;
-        public string? Name = name;
-        public string? SareId = shareId;
-        public byte[]? Iv = iv;
-        public byte[]? MetaMac = metaMac;
-        public byte[]? Key = key;
     }
 }

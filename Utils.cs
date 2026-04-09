@@ -1,12 +1,15 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MegaMini
 {
     internal class Utils
     {
+
         public static byte[] FromBase64(string data)
         {
             var sb = new StringBuilder();
@@ -126,5 +129,48 @@ namespace MegaMini
         {
             return encryptor.TransformFinalBlock(data, 0, data.Length);
         }
+
+        public static void GetIdAndKeyFromLink(string link, out string? shareId, out byte[]? decryptedKey)
+        {
+            shareId = null;
+            decryptedKey = null;
+            Regex regex = new(@"/(?<type>(file|folder))/(?<id>[^#]+)#(?<key>[^$/]+)", RegexOptions.IgnoreCase);
+            Match match = regex.Match(link);
+            if (match.Success)
+            {
+                shareId = match.Groups["id"].Value;
+                decryptedKey = Utils.FromBase64(match.Groups["key"].Value);
+
+            }
+        }
+
+        public static Stream PostRequest(string url, Stream dataStream, string contentType)
+        {
+            using StreamContent content = new(dataStream, Const.bufferSize);
+            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+
+            HttpRequestMessage requestMessage = new(HttpMethod.Post, url)
+            {
+                Content = content
+            };
+
+            HttpClient httpClient = new(new HttpClientHandler { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate })
+            {
+                Timeout = TimeSpan.FromMilliseconds(Const.responseTimeout)
+            };
+            HttpResponseMessage response = httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead).Result;
+            response.EnsureSuccessStatusCode();
+            return response.Content.ReadAsStreamAsync().Result;
+        }
+    }
+
+    public struct MegaFile(string? id, string? name, string? shareId, byte[]? iv, byte[]? metaMac, byte[]? key)
+    {
+        public string? Id = id;
+        public string? Name = name;
+        public string? SareId = shareId;
+        public byte[]? Iv = iv;
+        public byte[]? MetaMac = metaMac;
+        public byte[]? Key = key;
     }
 }

@@ -11,7 +11,7 @@ namespace MegaMini
             List<MegaFile>? megaFiles = MegaMini.GetNodesFromLink(link);
             if (megaFiles != null)
             {
-                for (int i = 11; i < 31; i++)
+                for (int i = 21; i < 51; i++)
                 {
                     Stream? stream = MegaMini.Download(megaFiles[i]);
                     if (stream != null)
