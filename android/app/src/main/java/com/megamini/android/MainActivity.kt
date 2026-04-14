@@ -22,7 +22,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Создаем простой UI программно
         val linearLayout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(16, 16, 16, 16)
@@ -60,36 +59,38 @@ class MainActivity : AppCompatActivity() {
 
     private fun startDownload(link: String) {
         statusTextView.text = "Получение списка файлов..."
-        
+
         lifecycleScope.launch {
             try {
                 val megaFiles = withContext(Dispatchers.IO) {
                     MegaMini.getNodesFromLink(link)
                 }
 
-                if (megaFiles != null && megaFiles.isNotEmpty()) {
-                    statusTextView.text = "Файл найден: ${megaFiles[0].name}"
-                    
-                    val file = File(getExternalFilesDir(null), "${megaFiles[0].name}.zip")
-                    FileOutputStream(file).use { outputStream ->
-                        withContext(Dispatchers.IO) {
-                            val stream = MegaMini.download(megaFiles[0])
-                            stream?.use { input ->
-                                input.copyTo(outputStream)
-                            }
-                        }
-                    }
-                    
-                    statusTextView.text = "Скачано в: ${file.absolutePath}"
-                    Toast.makeText(this@MainActivity, "Файл скачан успешно!", Toast.LENGTH_LONG).show()
-                } else {
+                if (megaFiles.isNullOrEmpty()) {
                     statusTextView.text = "Файлы не найдены"
                     Toast.makeText(this@MainActivity, "Файлы не найдены", Toast.LENGTH_SHORT).show()
+                    return@launch
                 }
+
+                val megaFile = megaFiles.first()
+                statusTextView.text = "Файл найден: ${megaFile.name ?: megaFile.id}"
+
+                val outputFileName = megaFile.name?.takeIf { it.isNotBlank() } ?: "download.bin"
+                val outputFile = File(getExternalFilesDir(null), outputFileName)
+
+                withContext(Dispatchers.IO) {
+                    MegaMini.download(megaFile)?.use { input ->
+                        FileOutputStream(outputFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    } ?: throw IllegalStateException("Не удалось открыть поток для скачивания")
+                }
+
+                statusTextView.text = "Скачано в: ${outputFile.absolutePath}"
+                Toast.makeText(this@MainActivity, "Файл скачан успешно!", Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 statusTextView.text = "Ошибка: ${e.message}"
                 Toast.makeText(this@MainActivity, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
-                e.printStackTrace()
             }
         }
     }
