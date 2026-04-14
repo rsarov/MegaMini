@@ -66,3 +66,6 @@ coverage/
 # Debug files
 debug/
 ```
+bin
+.vs
+obj
