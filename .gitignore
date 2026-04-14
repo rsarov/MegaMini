@@ -8,3 +8,6 @@ local.properties
 .externalNativeBuild/
 .cxx/
 app/build/
+.vs
+bin
+obj
