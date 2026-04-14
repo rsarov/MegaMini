@@ -25,7 +25,8 @@ namespace MegaMini
             string url = Const.baseLink + "?n=" + shareId
                 + "&id=" + (Const.sequenceIndex++ % uint.MaxValue).ToString(CultureInfo.InvariantCulture).ToString()
                 + "&ak=" + Const.applicationKey;
-            Stream dataStream = new MemoryStream(Utils.ToBytes("[{\"c\":1,\"r\":1,\"a\":\"f\"}]"));
+            byte[] data = Utils.ToBytes("[{\"c\":1,\"r\":1,\"a\":\"f\"}]");
+            Stream dataStream = new MemoryStream(data);
             Stream requestStream = Utils.PostRequest(url, dataStream, "application/json");
             String json = Utils.StreamToString(requestStream);
             List<JToken> allF = [.. JArray.Parse(json).SelectMany(x => x["f"] ?? new JArray())];

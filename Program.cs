@@ -11,16 +11,12 @@ namespace MegaMini
             List<MegaFile>? megaFiles = MegaMini.GetNodesFromLink(link);
             if (megaFiles != null)
             {
-                for (int i = 21; i < 51; i++)
+                Stream? stream = MegaMini.Download(megaFiles[0]);
+                if (stream != null)
                 {
-                    Stream? stream = MegaMini.Download(megaFiles[i]);
-                    if (stream != null)
-                    {
-                        FileStream fs = new(i + ".zip", FileMode.Create, FileAccess.Write);
-                        stream.CopyTo(fs);
-                    }
+                    FileStream fs = new(0 + ".zip", FileMode.Create, FileAccess.Write);
+                    stream.CopyTo(fs);
                 }
-
             }
         }
     }
