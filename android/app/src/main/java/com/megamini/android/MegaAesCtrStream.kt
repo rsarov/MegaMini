@@ -179,7 +179,7 @@ abstract class MegaAesCtrStream(
             // Fast path - no wrapping.
             counter[7]++
         } else {
-            val counterBytes = Long.toHexString(currentCounter).padStart(16, '0')
+            val counterBytes = Long.equals(currentCounter).padStart(16, '0')
                 .chunked(2)
                 .map { it.toInt(16).toByte() }
                 .toByteArray()

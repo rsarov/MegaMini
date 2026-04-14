@@ -73,8 +73,8 @@ object MegaMini {
         val size = parseFileSize(json)
 
         val client = OkHttpClient.Builder()
-            .connectTimeout(Const.responseTimeout, TimeUnit.MILLISECONDS)
-            .readTimeout(Const.responseTimeout, TimeUnit.MILLISECONDS)
+            .connectTimeout(Const.responseTimeout.toLong(), TimeUnit.MILLISECONDS)
+            .readTimeout(Const.responseTimeout.toLong(), TimeUnit.MILLISECONDS)
             .build()
 
         val request = Request.Builder()

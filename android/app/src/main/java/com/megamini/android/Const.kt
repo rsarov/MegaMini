@@ -8,5 +8,5 @@ object Const {
     const val responseTimeout: Int = -1 // Бесконечный таймаут
     const val applicationKey: String = "axhQiYyQ"
     const val baseLink: String = "https://g.api.mega.co.nz/cs"
-    var sequenceIndex: UInt = (UInt.MAX_VALUE * Math.random()).toUInt()
+    var sequenceIndex: UInt = (UInt.MAX_VALUE * Math.random().toUInt()).toUInt()
 }
